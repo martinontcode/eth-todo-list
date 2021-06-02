@@ -1,4 +1,5 @@
 App = {
+    loading: false,
     contracts: {},
 
     load: async () => {
@@ -54,8 +55,71 @@ App = {
     },
 
     render: async () => {
+
+        //Prevent double render
+        if (App.loading) {
+            return;
+        }
+
+        // Update app loading state
+        App.setLoading(true);
+
+        // Render wallet account address
         $('#account').html(App.account);
-    }
+
+        // Render tasks
+        await App.renderTasks();
+
+        // Update app loading state
+        App.setLoading(false);
+    },
+
+    renderTasks: async () => {
+        // Load the total task coun from blockchain
+        const taskCount = await App.todoList.taskCount();
+        const $taskTemplate = $('.taskTemplate');
+
+        // Render out each task with a new task template
+        for (var i = 1; i <= taskCount; i++) {
+            // Fetch task data from blockchain
+            const task = await App.todoList.tasks(i);
+            const taskId = task[0].toNumber();
+            const taskContent = task[1];
+            const taskCompleted = task[2];
+
+            // Create HTML for tasks
+            const $newTaskTemplate = $taskTemplate.clone();
+            $newTaskTemplate.find('.content').html(taskContent);
+            $newTaskTemplate.find('input')
+                            .prop('name', taskId)
+                            .prop('checked', taskCompleted)
+                            // .on('click', App.toggleCompleted);
+
+            if (taskCompleted) {
+                $('#completedTaskList').append($newTaskTemplate);
+            } else {
+                $('#taskList').append($newTaskTemplate);
+            }
+
+        // Show the task
+        $newTaskTemplate.show();
+
+        }
+    },
+
+    setLoading: (boolean) => {
+        App.loading = boolean;
+        const loader = $('#loader');
+        const content = $('#content');
+        if (boolean) {
+            loader.show();
+            content.hide();
+        } else {
+            loader.hide();
+            content.show();
+        }
+    },
+
 }
 
 $(() => {
